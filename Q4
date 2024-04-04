@@ -1,0 +1,30 @@
+library(ggplot2)
+library(rstanarm)
+
+set.seed(1)
+hospital_names <- c('Sydney Medical Center', 'Royal Sydney Hospital', 'East Sydney Clinic', 'West Sydney Health', 'Central Sydney Hospital')
+years <- 2004:2023
+cancer_types <- c('Lung', 'Breast', 'Colon', 'Prostate')
+n <- length(hospital_names) * length(years) * length(cancer_types)
+data <- expand.grid(Hospital=rep(hospital_names, each=length(years)*length(cancer_types)),
+                    Year=rep(years, times=length(hospital_names)*length(cancer_types)),
+                    CancerType=rep(cancer_types, each=length(years)),
+                    NumberofDeaths=sample(50:200, n, replace=TRUE))
+
+ggplot(data, aes(x = Year, y = NumberofDeaths, color = Hospital)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Total Cancer Deaths by Hospital Over 20 Years in Sydney",
+       x = "Year",
+       y = "Number of Deaths") +
+  theme_minimal() +
+  theme(legend.title = element_blank())
+
+
+
+
+# Simple linear regression model with rstanarm
+# Adjust the formula based on your specific hypothesis or interest
+model <- stan_glm(NumberofDeaths ~ Year + CancerType + Hospital, data = data, family = gaussian())
+
+print(summary(model))
