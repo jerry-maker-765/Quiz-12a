@@ -1,0 +1,75 @@
+
+set.seed(1) 
+hospital_names <- c('Sydney Medical Center', 'Royal Sydney Hospital', 'East Sydney Clinic', 'West Sydney Health', 'Central Sydney Hospital')
+years <- 2004:2023
+cancer_types <- c('Lung', 'Breast', 'Colon', 'Prostate')
+n <- length(hospital_names) * length(years) * length(cancer_types)
+data <- expand.grid(Hospital=rep(hospital_names, each=length(years)*length(cancer_types)),
+                    Year=rep(years, times=length(hospital_names)*length(cancer_types)),
+                    CancerType=rep(cancer_types, each=length(years)),
+                    NumberofDeaths=sample(50:200, n, replace=TRUE))
+
+# test 1: Compare average number of deaths across cancer types
+library(dplyr)
+avg_deaths_by_cancer <- data %>%
+  group_by(CancerType) %>%
+  summarise(AvgDeaths = mean(NumberofDeaths))
+
+print(avg_deaths_by_cancer)
+
+# Test Anova:
+
+anova_result <- aov(NumberofDeaths ~ Hospital + CancerType + Year, data=data)
+summary(anova_result)
+
+# Time Series Analysis (For Sydney Medical Center and Lung Cancer)
+library(forecast)
+data_smc_lung <- subset(data, Hospital == 'Sydney Medical Center' & CancerType == 'Lung')
+ts_data <- ts(data_smc_lung$NumberofDeaths, start=min(data_smc_lung$Year), frequency=1)
+autoplot(ts_data) + ggtitle("Time Series of Lung Cancer Deaths at Sydney Medical Center")
+
+# Linear Regression (Model Number of Deaths Over Time)
+
+lm_result <- lm(NumberofDeaths ~ Year, data=data)
+summary(lm_result)
+
+# Chi-square Test (Death Distribution Among Cancer Types)
+table_cancer_deaths <- table(data$CancerType, data$NumberofDeaths)
+chisq_result <- chisq.test(table_cancer_deaths)
+print(chisq_result)
+
+#  T-tests (Compare Two Hospitals for a Specific Cancer Type)
+
+data_hospital1 <- subset(data, Hospital == 'Sydney Medical Center' & CancerType == 'Lung')
+data_hospital2 <- subset(data, Hospital == 'Royal Sydney Hospital' & CancerType == 'Lung')
+t_test_result <- t.test(data_hospital1$NumberofDeaths, data_hospital2$NumberofDeaths)
+print(t_test_result)
+
+# Correlation Analysis (Between Different Cancer Types Over Years)
+
+lung_deaths <- aggregate(NumberofDeaths ~ Year, data[data$CancerType=='Lung',], sum)
+breast_deaths <- aggregate(NumberofDeaths ~ Year, data[data$CancerType=='Breast',], sum)
+cor_result <- cor(lung_deaths$NumberofDeaths, breast_deaths$NumberofDeaths)
+print(cor_result)
+
+# Non-parametric Test (Kruskal-Wallis)
+kruskal_result <- kruskal.test(NumberofDeaths ~ CancerType, data=data)
+print(kruskal_result)
+
+
+# Factorial ANOVA (Interactions Between Hospital and Cancer Type)
+fact_anova_result <- aov(NumberofDeaths ~ Hospital * CancerType, data=data)
+summary(fact_anova_result)
+
+
+# Post-hoc Tests (Tukey's HSD Following ANOVA)
+tukey_result <- TukeyHSD(anova_result)
+print(tukey_result)
+
+# Visualization (Boxplots for Number of Deaths by Cancer Type)
+
+library(ggplot2)
+ggplot(data, aes(x=CancerType, y=NumberofDeaths, fill=CancerType)) +
+  geom_boxplot() +
+  theme_minimal() +
+  ggtitle("Number of Deaths by Cancer Type")
